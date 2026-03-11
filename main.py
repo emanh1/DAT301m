@@ -36,7 +36,7 @@ def main():
         "--data-dir",
         type=str,
         default=None,
-        help="Path to dataset root (default: dataset/<dataset-name>)",
+        help="Path to dataset root (default: datasets/<dataset-name>)",
     )
     args = parser.parse_args()
     config = {

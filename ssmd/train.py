@@ -176,11 +176,11 @@ def train(config):
             batch_size: int
             data_dir: str (optional, defaults to 'dataset/<name>')
     """
-    dataset_name = config.get("dataset", "dsb")
+    dataset_name = config.get("datasets", "dsb")
     labeled_fraction = config.get("labeled_fraction", 0.2)
     epochs = config.get("epochs", 100)
     batch_size = config.get("batch_size", 8)
-    data_dir = config.get("data_dir", os.path.join("dataset", dataset_name))
+    data_dir = config.get("data_dir", os.path.join("datasets", dataset_name))
 
     num_classes = 1
 
