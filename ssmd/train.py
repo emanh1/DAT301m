@@ -116,13 +116,13 @@ def train_step(ssmd, optimizer, labeled_batch, unlabeled_batch, anchors, step, N
     u_images_t, _ = _teacher_augment_batch(u_images, [])
     all_images_t = tf.concat([l_images_t, u_images_t], axis=0) + r_adv
 
-    # 4. Forward + loss under GradientTape
+    # 4. Teacher forward pass (outside tape — no gradients needed through teacher)
+    t_cls_all, t_reg_all = ssmd.teacher(all_images_t, training=False)
+
+    # 5. Student forward + loss under GradientTape
     with tf.GradientTape() as tape:
         # Student (training=True → NRB active)
         s_cls_all, s_reg_all = ssmd.student(all_images_s, training=True)
-
-        # Teacher (training=False → no NRB, no grad updates)
-        t_cls_all, t_reg_all = ssmd.teacher(all_images_t, training=False)
 
         # Split labeled / unlabeled predictions
         n_labeled = l_images_s.shape[0] or tf.shape(l_images_s)[0]

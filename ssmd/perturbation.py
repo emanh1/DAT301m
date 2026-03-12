@@ -38,19 +38,24 @@ def compute_r_adv(
     # Normalise to small ball
     r.assign(xi * r / (tf.norm(r) + 1e-8))
 
+    # Teacher doesn't need to be inside the tape: all its outputs are stop_gradient'd
+    # before the loss, so gradients never flow through it. Evaluate at x (unperturbed)
+    # to avoid tracking teacher activations.
+    t_cls_list, t_reg_list = teacher_model(x, training=False)
+    t_cls_list_sg = [tf.stop_gradient(t) for t in t_cls_list]
+    t_reg_list_sg = [tf.stop_gradient(t) for t in t_reg_list]
+
     with tf.GradientTape() as tape:
         tape.watch(r)
 
         # Student forward with perturbation (training=True to keep NRB active)
         s_cls_list, s_reg_list = student_model(x + r, training=True)
-        # Teacher without gradient (training=False — no noisy blocks)
-        t_cls_list, t_reg_list = teacher_model(x + r, training=False)
 
         # Indicator: mask proposals where total foreground confidence < tau
         # We compute a per-proposal weight and zero out low-confidence ones
         losses = []
         for cls_s, cls_t, reg_s, reg_t in zip(
-            s_cls_list, t_cls_list, s_reg_list, t_reg_list
+            s_cls_list, t_cls_list_sg, s_reg_list, t_reg_list_sg
         ):
             B = tf.shape(cls_s)[0]
             # cls: (B, H, W, A*1) → (B, H*W*A, 1)  reg: → (B, H*W*A, 4)
@@ -68,13 +73,12 @@ def compute_r_adv(
 
             w = adaptive_weight(cls_s_flat, cls_t_flat) * indicator  # (B, N)
 
-            cls_t_sg = tf.stop_gradient(cls_t_flat)
             kl = tf.reduce_sum(
-                cls_t_sg * tf.math.log((cls_t_sg + 1e-7) / (cls_s_flat + 1e-7)),
+                cls_t_flat * tf.math.log((cls_t_flat + 1e-7) / (cls_s_flat + 1e-7)),
                 axis=-1,
             )  # (B, N)
             mse = tf.reduce_sum(
-                (reg_s_flat - tf.stop_gradient(reg_t_flat)) ** 2, axis=-1
+                (reg_s_flat - reg_t_flat) ** 2, axis=-1
             )  # (B, N)
             losses.append(tf.reduce_mean(w * (kl + mse)))
 
