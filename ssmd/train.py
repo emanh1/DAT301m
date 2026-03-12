@@ -90,13 +90,16 @@ def train_step(ssmd, optimizer, labeled_batch, unlabeled_batch, anchors, step, N
     Returns:
         dict with keys 'loss_sup', 'loss_cont', 'loss_total'
     """
-    l_images, l_boxes_ragged, _ = labeled_batch
+    l_images, l_boxes_padded, l_labels_padded = labeled_batch
     u_images, _, _ = unlabeled_batch
 
-    # Convert ragged/padded boxes to list of per-image tensors
+    # Strip padding rows (label == -1 marks padding added by padded_batch)
     n_labeled = l_images.shape[0] or int(tf.shape(l_images)[0])
     n_unlabeled = u_images.shape[0] or int(tf.shape(u_images)[0])
-    l_boxes_list = [l_boxes_ragged[b] for b in range(n_labeled)]
+    l_boxes_list = [
+        tf.boolean_mask(l_boxes_padded[b], l_labels_padded[b] >= 0)
+        for b in range(n_labeled)
+    ]
 
     # 1. Augment
     l_images_s, l_boxes_s = _augment_batch(l_images, l_boxes_list)

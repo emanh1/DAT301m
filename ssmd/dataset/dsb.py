@@ -156,6 +156,11 @@ def make_dataset(
         lambda ip, md: _py_load_sample(ip, md, target_size),
         num_parallel_calls=tf.data.AUTOTUNE,
     )
-    ds = ds.batch(batch_size, drop_remainder=False)
+    ds = ds.padded_batch(
+        batch_size,
+        padded_shapes=([target_size, target_size, 3], [None, 4], [None]),
+        padding_values=(0.0, 0.0, tf.constant(-1, dtype=tf.int32)),
+        drop_remainder=False,
+    )
     ds = ds.prefetch(tf.data.AUTOTUNE)
     return ds
