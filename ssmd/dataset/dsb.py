@@ -83,7 +83,7 @@ def make_dataset(
     labeled_fraction=0.2,
     split="train",
     target_size=448,
-    batch_size=8,
+    batch_size=2,
     shuffle=True,
     seed=42,
 ):
