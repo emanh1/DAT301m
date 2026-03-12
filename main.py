@@ -47,12 +47,18 @@ def main():
         default=None,
         help="Path to dataset root (default: datasets/<dataset-name>)",
     )
+    parser.add_argument(
+        "--no-adv",
+        action="store_true",
+        help="Skip adversarial perturbation (r_adv=0); useful for small GPUs",
+    )
     args = parser.parse_args()
     config = {
         "dataset": args.dataset,
         "labeled_fraction": args.labeled_fraction,
         "epochs": args.epochs,
         "batch_size": args.batch_size,
+        "use_adv": not args.no_adv,
     }
     if args.data_dir:
         config["data_dir"] = args.data_dir

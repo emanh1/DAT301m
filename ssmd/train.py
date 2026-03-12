@@ -75,7 +75,8 @@ def _teacher_augment_batch(images, boxes_list):
     return tf.stack(aug_imgs, axis=0), aug_boxes
 
 
-def train_step(ssmd, optimizer, labeled_batch, unlabeled_batch, anchors, step, N):
+def train_step(ssmd, optimizer, labeled_batch, unlabeled_batch, anchors, step, N,
+               use_adv=True):
     """One SSMD training step.
 
     Args:
@@ -107,9 +108,12 @@ def train_step(ssmd, optimizer, labeled_batch, unlabeled_batch, anchors, step, N
 
     # 2. Compute r_adv on combined batch (eq. 8-9)
     all_images_s = tf.concat([l_images_s, u_images_s], axis=0)
-    r_adv = compute_r_adv(
-        ssmd.student, ssmd.teacher, all_images_s, tau=0.5, eps=1.0, xi=0.01
-    )
+    if use_adv:
+        r_adv = compute_r_adv(
+            ssmd.student, ssmd.teacher, all_images_s, tau=0.5, eps=1.0, xi=0.01
+        )
+    else:
+        r_adv = tf.zeros_like(all_images_s)
 
     # 3. Teacher augmentation + add r_adv
     l_images_t, _ = _teacher_augment_batch(l_images, l_boxes_list)
@@ -183,6 +187,7 @@ def train(config):
     labeled_fraction = config.get("labeled_fraction", 0.2)
     epochs = config.get("epochs", 100)
     batch_size = config.get("batch_size", 8)
+    use_adv = config.get("use_adv", True)
     data_dir = config.get("data_dir", os.path.join("datasets", dataset_name))
 
     num_classes = 1
@@ -260,7 +265,7 @@ def train(config):
             u_batch = unlabeled_list[local_step % len(unlabeled_list)]
 
             losses = train_step(
-                ssmd, optimizer, l_batch, u_batch, anchors, global_step, total_steps
+                ssmd, optimizer, l_batch, u_batch, anchors, global_step, total_steps, use_adv
             )
             global_step += 1
 
