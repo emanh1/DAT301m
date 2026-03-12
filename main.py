@@ -1,6 +1,15 @@
 """SSMD CLI entry point."""
 
 import argparse
+import tensorflow as tf
+
+# Allow GPU memory to grow on demand instead of pre-allocating all VRAM
+for _gpu in tf.config.list_physical_devices("GPU"):
+    tf.config.experimental.set_memory_growth(_gpu, True)
+
+# Mixed precision: halves activation memory, essential for small GPUs
+tf.keras.mixed_precision.set_global_policy("mixed_float16")
+
 from ssmd.train import train
 
 
